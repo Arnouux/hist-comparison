@@ -11,46 +11,65 @@ def unpickle(file):
 
 imgs = unpickle("../cifar-10-python/cifar-10-batches-py/data_batch_1")
 
-def get_neighbor_bins(histogram: list, index: int) -> list:
-    output = []
-    for i in range(index-2, index+3, 1):
-        if i < 0 or i >= len(histogram):
+# todo remove found neighbor
+def get_similar_neighbor_in_range(histogram1: list, histogram2: list, index: int, wideness: int) -> int:
+    best_i, best = 0, 255
+    for i in range(index-wideness, index+wideness, 1):
+        if i < 0 or i >= len(histogram1):
             continue
-        output.append(i)
+        diff = abs(histogram1[i] - histogram2[i])
+        if diff < best:
+            best_i = i
+            best = diff
+    return best_i
+
+# input:  list sized 3072 (1024 * rgb)
+# output: list sized 1024 (grayscale)
+def to_grayscale(image: list) -> list:
+    output = [0] * 1024
+    for i in range(1024):
+        output[i] = int(image[i] * 0.299 + image[i+1024] * 0.587 + image[i+2048] * 0.114)
     return output
 
 print(imgs.keys())
-nb_bins = 50
+nb_bins = 25
 wanted_label = 8
 #hist, bins = np.histogram(imgs[b'data'][0], bins=np.arange(255))
 
 f, axarr = plt.subplots(2,1)
 
-hist_sum = np.zeros(nb_bins)
+hist1 = np.zeros(nb_bins)
+c = 0
 for i, label in enumerate(imgs[b'labels'][:5000]):
     if label == wanted_label:
-        hist = np.histogram(imgs[b'data'][i], bins=nb_bins)
-        hist_sum += hist[0]
-axarr[0].hist(hist_sum, bins=nb_bins)
-hist1, bins1 = np.histogram(hist_sum, bins=nb_bins)
+        gray = to_grayscale(imgs[b'data'][i])
+        hist = np.histogram(gray, bins=nb_bins)
+        hist1 += hist[0]
+        c += 1
 
-hist_sum = np.zeros(nb_bins)
+hist1 = np.divide(hist1, c)
+axarr[0].hist(hist1, bins=nb_bins)
+
+
+hist2 = np.zeros(nb_bins)
+c = 0
 for i, label in enumerate(imgs[b'labels'][5000:]):
     if label == wanted_label:
-        hist = np.histogram(imgs[b'data'][i+5000], bins=nb_bins)
-        hist_sum += hist[0]
-axarr[1].hist(hist_sum, bins=nb_bins)
-hist2, bins2 = np.histogram(hist_sum, bins=nb_bins)
+        gray = to_grayscale(imgs[b'data'][i])
+        hist = np.histogram(gray, bins=nb_bins)
+        hist2 += hist[0]
+        c += 1
+
+hist2 = np.divide(hist2, c)
+axarr[1].hist(hist2, bins=nb_bins)
+
 
 total_diff = 0
 for i, val in enumerate(hist1):
-    neighbors = get_neighbor_bins(hist1, i)
-    diff = 0
-    for neighbor in neighbors:
-        diff += abs(val - hist2[neighbor]) ** (1 / (abs(i-neighbor)+1))
-    total_diff += diff
-    print(val, hist2[neighbor])
+    neighbor = get_similar_neighbor_in_range(hist1, hist2, i, 2)
+    
+    total_diff += abs(val - hist2[neighbor])
 
-print(total_diff / nb_bins)
+print(math.sqrt(total_diff / nb_bins))
 
 plt.show()
