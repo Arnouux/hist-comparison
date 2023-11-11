@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import cv2
 import numpy as np
 import math
 
@@ -8,8 +7,6 @@ def unpickle(file):
     with open(file, 'rb') as fo:
         dict = pickle.load(fo, encoding='bytes')
     return dict
-
-dataset = unpickle("../cifar-10-python/cifar-10-batches-py/data_batch_1")
 
 # todo remove found neighbor
 def get_similar_neighbor_in_range(histogram1: list, histogram2: list, index: int, wideness: int) -> int:
@@ -49,29 +46,33 @@ def images_to_histogram(imgs: list, nb_bins: int) -> list:
     hist1 = np.divide(hist1, c)
     return hist1
 
-nb_bins = 25
-wanted_label = 8
-f, axarr = plt.subplots(2,1)
-
-imgs = extract_images_from_label(dataset, wanted_label)
-middle = len(imgs)//2
-batch1 = imgs[:middle]
-batch2 = imgs[middle:]
-
-print(len(imgs))
-
-hist1 = images_to_histogram(batch1, nb_bins)
-axarr[0].hist(hist1, bins=nb_bins)
-
-hist2 = images_to_histogram(batch2, nb_bins)
-axarr[1].hist(hist2, bins=nb_bins)
-
-total_diff = 0
-for i, val in enumerate(hist1):
-    neighbor = get_similar_neighbor_in_range(hist1, hist2, i, 2)
+def compare_histogram(hist1: list, hist2: list) -> int:
+    total_diff = 0
+    for i, val in enumerate(hist1):
+        neighbor = get_similar_neighbor_in_range(hist1, hist2, i, 2)
     
-    total_diff += abs(val - hist2[neighbor])
+        total_diff += abs(val - hist2[neighbor])
+    return math.sqrt(total_diff / len(hist1))
 
-print(math.sqrt(total_diff / nb_bins))
+if __name__ == '__main__':
+    dataset = unpickle("../cifar-10-python/cifar-10-batches-py/data_batch_1")
+    nb_bins = 255
+    wanted_label = 8
+    f, axarr = plt.subplots(2,1)
 
-plt.show()
+    imgs = extract_images_from_label(dataset, wanted_label)
+    middle = len(imgs)//2
+    batch1 = imgs[:middle]
+    batch2 = imgs[middle:]
+
+    hist1 = images_to_histogram(batch1, nb_bins)
+    axarr[0].hist(hist1, bins=nb_bins)
+
+    hist2 = images_to_histogram(batch2, nb_bins)
+    axarr[1].hist(hist2, bins=nb_bins)
+
+    total_diff = compare_histogram(hist1, hist2)
+
+    print(total_diff)
+
+    plt.show()
