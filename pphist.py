@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import random
+from collections.abc import Callable
 
 def unpickle(file):
     import pickle
@@ -35,16 +37,27 @@ def extract_images_from_label(imgs: dict, wanted_label: str) -> list:
             matching_imgs.append(imgs[b'data'][i])
     return matching_imgs
 
-def images_to_histogram(imgs: list, nb_bins: int) -> list:
-    hist1 = np.zeros(nb_bins)
+def randomize_histogram(histogram: list, e: int) -> list:
+    return list(map(lambda x: x + random.uniform(-e, e), histogram))
+
+def histogram_from_grayscale(img: list, nb_bins: int) -> list:
+    gray = to_grayscale(img)
+    return np.histogram(gray, bins=nb_bins)[0]
+
+def histogram_from_contrast(img: list, nb_bins: int) -> list:
+    gray = to_grayscale(img)
+    hist = np.histogram(gray, bins=nb_bins)
+    return np.cumsum(hist[0])
+
+def images_to_histogram(imgs: list, transform_func: Callable[[list, int], list], nb_bins: int) -> list:
+    hist_sum = np.zeros(nb_bins)
     c = 0
     for img in imgs:
-        gray = to_grayscale(img)
-        hist = np.histogram(gray, bins=nb_bins)
-        hist1 += hist[0]
+        hist = transform_func(img, nb_bins)
+        hist_sum += hist
         c += 1
-    hist1 = np.divide(hist1, c)
-    return hist1
+    hist_sum = np.divide(hist_sum, c)
+    return hist_sum
 
 def compare_histogram(hist1: list, hist2: list) -> int:
     total_diff = 0
@@ -58,21 +71,3 @@ if __name__ == '__main__':
     dataset = unpickle("../cifar-10-python/cifar-10-batches-py/data_batch_1")
     nb_bins = 255
     wanted_label = 8
-    f, axarr = plt.subplots(2,1)
-
-    imgs = extract_images_from_label(dataset, wanted_label)
-    middle = len(imgs)//2
-    batch1 = imgs[:middle]
-    batch2 = imgs[middle:]
-
-    hist1 = images_to_histogram(batch1, nb_bins)
-    axarr[0].hist(hist1, bins=nb_bins)
-
-    hist2 = images_to_histogram(batch2, nb_bins)
-    axarr[1].hist(hist2, bins=nb_bins)
-
-    total_diff = compare_histogram(hist1, hist2)
-
-    print(total_diff)
-
-    plt.show()
