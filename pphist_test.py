@@ -49,5 +49,22 @@ class TestHistogramComparison(unittest.TestCase):
             result = compare_histogram(hist1, hist2)
             self.assertGreater(result, original)
 
+    def test_randomized(self):
+        nb_bins = 255
+        imgs1 = extract_images_from_label(self.small_dataset1, 0)
+        imgs2 = extract_images_from_label(self.small_dataset2, 0)
+        hist1 = images_to_histogram(imgs1, histogram_from_grayscale, nb_bins)
+        hist2 = images_to_histogram(imgs2, histogram_from_grayscale, nb_bins)
+        randomized2 = randomize_histogram(hist2, 0.5)
+        original = compare_histogram(hist1, randomized2)
+
+        for i in range(1, 9):
+            imgs2 = extract_images_from_label(self.small_dataset2, i)
+            hist2 = images_to_histogram(imgs2, histogram_from_grayscale, nb_bins)
+            randomized2 = randomize_histogram(hist2, 0.5)
+
+            result = compare_histogram(hist1, randomized2)
+            self.assertGreater(result, original)
+
 if __name__ == '__main__':
     unittest.main()

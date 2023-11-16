@@ -3,6 +3,7 @@ import numpy as np
 import math
 import random
 from collections.abc import Callable
+from histograms import Summary
 
 def unpickle(file):
     import pickle
@@ -37,7 +38,10 @@ def extract_images_from_label(imgs: dict, wanted_label: str) -> list:
             matching_imgs.append(imgs[b'data'][i])
     return matching_imgs
 
-def randomize_histogram(histogram: list, e: int) -> list:
+def summarize_histogram(histogram: list) -> Summary:
+    return Summary(histogram)
+
+def randomize_histogram(histogram: list, e: float) -> list:
     return list(map(lambda x: x + random.uniform(-e, e), histogram))
 
 def histogram_from_grayscale(img: list, nb_bins: int) -> list:
